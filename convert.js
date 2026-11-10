@@ -3,7 +3,8 @@
 //   1/2 cup 1-to-1 gluten-free flour (Bob's Red Mill or King Arthur)
 //   1/2 cup almond flour
 //   1/4 cup coconut flour
-// The three flours together equal the regular flour by volume.
+// Rounded mode keeps that volume. Precise mode scales the same mix so the
+// three flours weigh the same as the regular flour (120 g per cup).
 
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
@@ -24,6 +25,8 @@
     almond: 96,
     coconut: 128,
   };
+  // Volume shares of the written blend: 2/5, 2/5, and 1/5.
+  var SHARE = { oneToOne: 2, almond: 2, coconut: 1 };
 
   // Simple spoon measures round to the nearest tablespoon (16 per cup).
   // Exact spoon measures round to the nearest teaspoon (48 per cup).
@@ -218,12 +221,66 @@
 
   function formatExactGrams(grams) {
     if (!Number.isFinite(grams) || grams <= 0) return "0 g";
-    var thousandths = Math.round(grams * 1000) / 1000;
+    var thousandths = Math.round(grams * 1000);
     if (thousandths <= 0) return "< 0.01 g";
-    var trimmed = thousandths.toFixed(3).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
-    var pieces = trimmed.split(".");
-    pieces[0] = Number(pieces[0]).toLocaleString("en-US");
-    return pieces.join(".") + " g";
+    return formatThousandths(thousandths);
+  }
+
+  function formatThousandths(thousandths) {
+    var whole = Math.trunc(thousandths / 1000);
+    var frac = thousandths % 1000;
+    var head = whole.toLocaleString("en-US");
+    if (!frac) return head + " g";
+    var tail = String(frac);
+    while (tail.length < 3) tail = "0" + tail;
+    return head + "." + tail.replace(/0+$/, "") + " g";
+  }
+
+  function perCupGrams(key, chosen) {
+    return key === "oneToOne" ? WEIGHTS.oneToOne[chosen] : WEIGHTS[key];
+  }
+
+  // 2/5, 2/5, and 1/5 of a cup, weighed with the chosen 1-to-1 bag.
+  function blendWeightNumerator(chosen) {
+    return (
+      SHARE.oneToOne * WEIGHTS.oneToOne[chosen] +
+      SHARE.almond * WEIGHTS.almond +
+      SHARE.coconut * WEIGHTS.coconut
+    );
+  }
+
+  // Split a gram target into thousandths that add back to it exactly.
+  function splitThousandths(rawThousandths, targetThousandths) {
+    var parts = rawThousandths.map(function (exact, index) {
+      var nearest = Math.round(exact);
+      if (Math.abs(exact - nearest) < 1e-6) {
+        return { floor: nearest, frac: 0, index: index };
+      }
+      var floor = Math.floor(exact);
+      return { floor: floor, frac: exact - floor, index: index };
+    });
+    var used = 0;
+    parts.forEach(function (part) {
+      used += part.floor;
+    });
+    var leftover = targetThousandths - used;
+    var order = parts.slice().sort(function (a, b) {
+      if (b.frac !== a.frac) return b.frac - a.frac;
+      return a.index - b.index;
+    });
+    var step = leftover > 0 ? 1 : -1;
+    var guard = 0;
+    while (leftover !== 0 && order.length && guard < 10000) {
+      var part = order[guard % order.length];
+      if (step > 0 || part.floor > 0) {
+        part.floor += step;
+        leftover -= step;
+      }
+      guard += 1;
+    }
+    return parts.map(function (part) {
+      return part.floor;
+    });
   }
 
   function gcd(a, b) {
@@ -260,23 +317,38 @@
     var totalSpoons = 0;
     var totalMilli = 0;
     var totalGrams = 0;
-    keys.forEach(function (key) {
+    var shownThousandths = [];
+    var targetThousandths = 0;
+    if (exact) {
+      // Same volume ratio, scaled so the bowl weighs the same as the regular flour.
+      targetThousandths = Math.max(0, Math.round(regularCups * REGULAR_CUP_GRAMS * 1000));
+      var blend = blendWeightNumerator(chosen);
+      shownThousandths = splitThousandths(
+        keys.map(function (key) {
+          return (SHARE[key] * perCupGrams(key, chosen) * targetThousandths) / blend;
+        }),
+        targetThousandths
+      );
+    }
+    keys.forEach(function (key, index) {
       var exactCups = RATIO[key] * scale;
-      var perCup = key === "oneToOne" ? WEIGHTS.oneToOne[chosen] : WEIGHTS[key];
+      var perCup = perCupGrams(key, chosen);
       var spoons;
       var volume;
       var grams;
       var gramsLabel;
       if (exact) {
-        // Grams are the true weight. Spoons follow that weight, even below 1 teaspoon.
-        var milli = preciseMilli(exactCups);
-        grams = milli > 0 ? (milli * perCup) / (TSP_PER_CUP * 1000) : exactCups * perCup;
-        var shown = Math.round(grams * 1000) / 1000;
-        gramsLabel = shown <= 0 && grams > 0 ? "< 0.01 g" : formatExactGrams(shown);
+        var thousandths = shownThousandths[index];
+        grams = thousandths / 1000;
+        // Spoons follow the unrounded share, so equal parts of the recipe stay equal.
+        var preciseCups = (SHARE[key] * regularCups * REGULAR_CUP_GRAMS) / blendWeightNumerator(chosen);
+        var milli = preciseMilli(preciseCups);
+        gramsLabel = thousandths > 0 ? formatThousandths(thousandths) : grams > 0 ? "< 0.01 g" : "0 g";
         volume = milli > 0 ? formatPreciseMilli(milli) : UNDER_PRECISE;
         spoons = milli / 1000;
         totalMilli += milli;
-        totalGrams += shown > 0 ? shown : 0;
+        totalGrams += grams;
+        exactCups = preciseCups;
       } else {
         spoons = Math.max(0, Math.round(exactCups * TBSP_PER_CUP));
         // Rounded grams follow the tablespoon scoops.
@@ -312,8 +384,8 @@
         tablespoons: exact ? totalMilli / 3000 : totalSpoons,
         teaspoons: exact ? totalMilli / 1000 : totalSpoons * TSP_PER_TBSP,
         volume: totalVolume,
-        grams: totalGrams,
-        gramsLabel: exact ? formatExactGrams(totalGrams) : formatGrams(totalGrams),
+        grams: exact ? targetThousandths / 1000 : totalGrams,
+        gramsLabel: exact ? formatThousandths(targetThousandths) : formatGrams(totalGrams),
       },
     };
   }

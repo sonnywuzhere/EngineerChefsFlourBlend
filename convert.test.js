@@ -90,24 +90,63 @@ test("input formatting round-trips the toggle", function () {
   assert.equal(swap.formatInputAmount(150, "grams"), "150");
 });
 
-test("precise mode matches the gram weight, including a small teaspoon", function () {
-  const written = swap.convert(1.25, "bobs", "exact");
-  assert.equal(written.flours.oneToOne.volume.plain, "1/2 cup");
-  assert.equal(written.flours.almond.volume.plain, "1/2 cup");
-  assert.equal(written.flours.coconut.volume.plain, "1/4 cup");
-  assert.equal(written.flours.oneToOne.gramsLabel, "74 g");
-  assert.equal(written.precision, "exact");
+test("precise mode makes the blend weigh the same as the regular flour", function () {
+  const cups = swap.cupsFromInput(120, "grams");
+  assert.equal(cups, 1);
 
-  const one = swap.convert(1, "bobs", "exact");
-  assert.equal(one.flours.oneToOne.volume.plain, "1/4 cup + 2 tablespoons + 1 1/5 teaspoons");
-  assert.equal(one.flours.almond.volume.plain, "1/4 cup + 2 tablespoons + 1 1/5 teaspoons");
-  assert.equal(one.flours.coconut.volume.plain, "3 tablespoons + 3/5 teaspoon");
-  assert.equal(one.flours.oneToOne.gramsLabel, "59.2 g");
-  assert.equal(one.flours.almond.gramsLabel, "38.4 g");
-  assert.equal(one.flours.coconut.gramsLabel, "25.6 g");
-  assert.equal(one.total.volume.plain, "1 cup");
-  assert.equal(one.total.gramsLabel, "123.2 g");
-  assert.equal(one.total.teaspoons, 48);
+  const bobs = swap.convert(cups, "bobs", "exact");
+  assert.equal(bobs.precision, "exact");
+  assert.equal(bobs.flours.oneToOne.gramsLabel, "57.662 g");
+  assert.equal(bobs.flours.almond.gramsLabel, "37.403 g");
+  assert.equal(bobs.flours.coconut.gramsLabel, "24.935 g");
+  assert.equal(bobs.total.gramsLabel, "120 g");
+  assert.equal(bobs.flours.oneToOne.volume.plain, "1/4 cup + 2 tablespoons + 0.701 teaspoon");
+  assert.equal(bobs.flours.almond.volume.plain, bobs.flours.oneToOne.volume.plain);
+  assert.equal(bobs.flours.coconut.volume.plain, "3 tablespoons + 0.351 teaspoon");
+  assert.equal(bobs.total.volume.plain, "3/4 cup + 3 tablespoons + 1.753 teaspoons");
+
+  const kingArthur = swap.convert(cups, "kingArthur", "exact");
+  assert.equal(kingArthur.flours.oneToOne.gramsLabel, "51.429 g");
+  assert.equal(kingArthur.flours.almond.gramsLabel, "41.143 g");
+  assert.equal(kingArthur.flours.coconut.gramsLabel, "27.428 g");
+  assert.equal(kingArthur.total.gramsLabel, "120 g");
+  assert.equal(
+    kingArthur.flours.oneToOne.volume.plain,
+    "1/4 cup + 2 tablespoons + 2.571 teaspoons"
+  );
+  assert.equal(kingArthur.flours.almond.volume.plain, kingArthur.flours.oneToOne.volume.plain);
+  assert.equal(kingArthur.flours.coconut.volume.plain, "3 tablespoons + 1.286 teaspoons");
+  assert.equal(kingArthur.total.volume.plain, "1 cup + 1 tablespoon + 0.428 teaspoon");
+
+  const written = swap.convert(1.25, "bobs", "exact");
+  assert.equal(written.flours.oneToOne.gramsLabel, "72.078 g");
+  assert.equal(written.flours.almond.gramsLabel, "46.753 g");
+  assert.equal(written.flours.coconut.gramsLabel, "31.169 g");
+  assert.equal(written.total.gramsLabel, "150 g");
+
+  const writtenKing = swap.convert(1.25, "kingArthur", "exact");
+  assert.equal(writtenKing.flours.oneToOne.gramsLabel, "64.286 g");
+  assert.equal(writtenKing.flours.almond.gramsLabel, "51.428 g");
+  assert.equal(writtenKing.flours.coconut.gramsLabel, "34.286 g");
+  assert.equal(writtenKing.total.gramsLabel, "150 g");
+});
+
+test("precise totals stay on the regular-flour weight", function () {
+  function gramsOf(label) {
+    return Number(label.replace(/,/g, "").replace(" g", ""));
+  }
+  [0.25, 0.5, 2 / 3, 1, 1.25, 2, 3.5, 10].forEach(function (cups) {
+    ["bobs", "kingArthur"].forEach(function (brand) {
+      const result = swap.convert(cups, brand, "exact");
+      const target = Math.round(cups * swap.REGULAR_CUP_GRAMS * 1000) / 1000;
+      const parts =
+        gramsOf(result.flours.oneToOne.gramsLabel) +
+        gramsOf(result.flours.almond.gramsLabel) +
+        gramsOf(result.flours.coconut.gramsLabel);
+      assert.equal(gramsOf(result.total.gramsLabel), target);
+      assert.equal(Math.round(parts * 1000) / 1000, target);
+    });
+  });
 });
 
 test("precise volume keeps a fraction of a teaspoon", function () {

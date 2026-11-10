@@ -8,6 +8,7 @@
   var precisionButtons = Array.prototype.slice.call(document.querySelectorAll("[data-precision]"));
   var precisionHelp = document.getElementById("precision-help");
   var roundingNote = document.getElementById("rounding-note");
+  var brandNote = document.getElementById("brand-note");
 
   var unit = "cups";
   var brand = "bobs";
@@ -189,7 +190,7 @@
       "EngineerChef's Flour Blend",
       "Regular flour: " + input,
       precision === "exact"
-        ? "Exact gram weight. The spoons match those grams."
+        ? "Exact weight. The blend weighs the same as the regular flour."
         : "Rounded to the nearest tablespoon. These measurements will not be exact.",
       "",
     ];
@@ -257,15 +258,19 @@
   function updateMeasureCopy() {
     if (precision === "exact") {
       precisionHelp.textContent =
-        "More precise matches the gram weight. Weigh the grams. The spoons are that same weight, down to a small teaspoon.";
+        "More precise makes the blend weigh the same as the regular flour. Weigh the grams. The spoons match those grams.";
       roundingNote.textContent =
-        "The grams are the exact blend. The spoons are that same weight, down to a small teaspoon.";
+        "The three flours add up to the regular flour by weight. The spoons match those grams, down to a small teaspoon.";
+      brandNote.textContent =
+        "Bob's and King Arthur use different spoon amounts here, so the blend still weighs the same as the regular flour.";
       return;
     }
     precisionHelp.textContent =
       "Rounded to the nearest tablespoon. This will not be exact. Select More precise for the exact gram weight.";
     roundingNote.textContent =
       "Rounded to the nearest tablespoon. This will not be exact. Select More precise for the exact gram weight.";
+    brandNote.textContent =
+      "The cup amount stays the same either way. Grams for the 1-to-1 follow the bag you buy.";
   }
 
   function setUnit(next) {
