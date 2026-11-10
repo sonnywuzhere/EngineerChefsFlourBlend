@@ -3,8 +3,9 @@
 //   1/2 cup 1-to-1 gluten-free flour (Bob's Red Mill or King Arthur)
 //   1/2 cup almond flour
 //   1/4 cup coconut flour
-// Rounded mode keeps that volume. Precise mode scales the same mix so the
-// three flours weigh the same as the regular flour (120 g per cup).
+// Cups mode keeps that volume. Grams mode scales the same mix so the three
+// flours weigh the same as the regular flour (120 g per cup). The page shows
+// only the unit the cook selected.
 
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
@@ -308,8 +309,46 @@
     return String(rounded);
   }
 
-  function convert(regularCups, brand, precision) {
+  function weightShares(regularCups, chosen, keys, target) {
+    var blend = blendWeightNumerator(chosen);
+    return splitThousandths(
+      keys.map(function (key) {
+        return (SHARE[key] * perCupGrams(key, chosen) * target) / blend;
+      }),
+      target
+    );
+  }
+
+  function scoopFromCups(cups, perCup, exact) {
+    if (exact) {
+      var milli = preciseMilli(cups);
+      var grams = milli > 0 ? (milli * perCup) / (TSP_PER_CUP * 1000) : cups * perCup;
+      var shown = Math.round(grams * 1000) / 1000;
+      return {
+        spoons: milli / 1000,
+        volume: milli > 0 ? formatPreciseMilli(milli) : UNDER_PRECISE,
+        grams: grams,
+        gramsLabel: shown <= 0 && grams > 0 ? "< 0.01 g" : formatExactGrams(shown),
+        shownGrams: shown > 0 ? shown : 0,
+        milli: milli,
+      };
+    }
+    var spoons = Math.max(0, Math.round(cups * TBSP_PER_CUP));
+    var grams = (spoons > 0 ? spoons / TBSP_PER_CUP : cups) * perCup;
+    var shownGrams = grams > 0 && Math.round(grams) <= 0 ? 0 : Math.round(grams);
+    return {
+      spoons: spoons,
+      volume: spoons > 0 ? formatTbsp(spoons) : UNDER_TBSP,
+      grams: grams,
+      gramsLabel: shownGrams <= 0 && grams > 0 ? "< 1 g" : formatGrams(shownGrams),
+      shownGrams: shownGrams > 0 ? shownGrams : 0,
+      milli: 0,
+    };
+  }
+
+  function convert(regularCups, brand, precision, unit) {
     var exact = precision === "exact";
+    var byWeight = unit === "grams";
     var scale = regularCups / BASE_CUPS;
     var chosen = brand === "kingArthur" ? "kingArthur" : "bobs";
     var keys = ["oneToOne", "almond", "coconut"];
@@ -317,53 +356,42 @@
     var totalSpoons = 0;
     var totalMilli = 0;
     var totalGrams = 0;
-    var shownThousandths = [];
-    var targetThousandths = 0;
-    if (exact) {
-      // Same volume ratio, scaled so the bowl weighs the same as the regular flour.
-      targetThousandths = Math.max(0, Math.round(regularCups * REGULAR_CUP_GRAMS * 1000));
-      var blend = blendWeightNumerator(chosen);
-      shownThousandths = splitThousandths(
-        keys.map(function (key) {
-          return (SHARE[key] * perCupGrams(key, chosen) * targetThousandths) / blend;
-        }),
-        targetThousandths
-      );
+    var shownWeight = [];
+    var targetWeight = 0;
+    if (byWeight) {
+      var target = regularCups * REGULAR_CUP_GRAMS;
+      targetWeight = Math.max(0, Math.round(exact ? target * 1000 : target));
+      shownWeight = weightShares(regularCups, chosen, keys, targetWeight);
     }
     keys.forEach(function (key, index) {
       var exactCups = RATIO[key] * scale;
       var perCup = perCupGrams(key, chosen);
-      var spoons;
-      var volume;
+      var scoop;
       var grams;
       var gramsLabel;
-      if (exact) {
-        var thousandths = shownThousandths[index];
-        grams = thousandths / 1000;
-        // Spoons follow the unrounded share, so equal parts of the recipe stay equal.
-        var preciseCups = (SHARE[key] * regularCups * REGULAR_CUP_GRAMS) / blendWeightNumerator(chosen);
-        var milli = preciseMilli(preciseCups);
-        gramsLabel = thousandths > 0 ? formatThousandths(thousandths) : grams > 0 ? "< 0.01 g" : "0 g";
-        volume = milli > 0 ? formatPreciseMilli(milli) : UNDER_PRECISE;
-        spoons = milli / 1000;
-        totalMilli += milli;
+      if (byWeight) {
+        exactCups = (SHARE[key] * regularCups * REGULAR_CUP_GRAMS) / blendWeightNumerator(chosen);
+        grams = exact ? shownWeight[index] / 1000 : shownWeight[index];
+        gramsLabel = exact
+          ? shownWeight[index] > 0
+            ? formatThousandths(shownWeight[index])
+            : "0 g"
+          : formatGrams(shownWeight[index]);
+        scoop = scoopFromCups(exactCups, perCup, exact);
         totalGrams += grams;
-        exactCups = preciseCups;
       } else {
-        spoons = Math.max(0, Math.round(exactCups * TBSP_PER_CUP));
-        // Rounded grams follow the tablespoon scoops.
-        grams = (spoons > 0 ? spoons / TBSP_PER_CUP : exactCups) * perCup;
-        var shownGrams = grams > 0 && Math.round(grams) <= 0 ? 0 : Math.round(grams);
-        gramsLabel = shownGrams <= 0 && grams > 0 ? "< 1 g" : formatGrams(shownGrams);
-        volume = spoons > 0 ? formatTbsp(spoons) : UNDER_TBSP;
-        totalSpoons += spoons;
-        totalGrams += shownGrams > 0 ? shownGrams : 0;
+        scoop = scoopFromCups(exactCups, perCup, exact);
+        grams = scoop.grams;
+        gramsLabel = scoop.gramsLabel;
+        totalGrams += scoop.shownGrams;
       }
+      if (exact) totalMilli += scoop.milli;
+      else totalSpoons += scoop.spoons;
       flours[key] = {
         cups: exactCups,
-        tablespoons: exact ? spoons / TSP_PER_TBSP : spoons,
-        teaspoons: exact ? spoons : spoons * TSP_PER_TBSP,
-        volume: volume,
+        tablespoons: exact ? scoop.spoons / TSP_PER_TBSP : scoop.spoons,
+        teaspoons: exact ? scoop.spoons : scoop.spoons * TSP_PER_TBSP,
+        volume: scoop.volume,
         grams: grams,
         gramsLabel: gramsLabel,
       };
@@ -375,17 +403,25 @@
       : totalSpoons > 0
         ? formatTbsp(totalSpoons)
         : UNDER_TBSP;
+    var totalLabel = byWeight
+      ? exact
+        ? formatThousandths(targetWeight)
+        : formatGrams(targetWeight)
+      : exact
+        ? formatExactGrams(totalGrams)
+        : formatGrams(totalGrams);
     return {
       regularCups: regularCups,
       brand: chosen,
       precision: exact ? "exact" : "simple",
+      unit: byWeight ? "grams" : "cups",
       flours: flours,
       total: {
         tablespoons: exact ? totalMilli / 3000 : totalSpoons,
         teaspoons: exact ? totalMilli / 1000 : totalSpoons * TSP_PER_TBSP,
         volume: totalVolume,
-        grams: exact ? targetThousandths / 1000 : totalGrams,
-        gramsLabel: exact ? formatThousandths(targetThousandths) : formatGrams(totalGrams),
+        grams: byWeight ? (exact ? targetWeight / 1000 : targetWeight) : totalGrams,
+        gramsLabel: totalLabel,
       },
     };
   }
