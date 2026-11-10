@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EngineerChef's Flour Blend</title>
+    <meta
+      name="description"
+      content="Turn the regular flour in a recipe into 1-to-1 gluten-free flour, almond flour, and coconut flour."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Nunito:wght@520;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <article class="sheet">
+        <header class="mast">
+          <p class="stamp" aria-hidden="true">GF</p>
+          <div class="mast-copy">
+            <p class="brand">EngineerChef's Flour Blend</p>
+            <p class="mast-note">Regular flour, rewritten</p>
+          </div>
+        </header>
+
+        <section class="intro">
+          <p class="eyebrow">For the recipe in front of you</p>
+          <h1>Put the flour amount <span class="here">here.<svg class="point" viewBox="0 0 20 28" aria-hidden="true" focusable="false"><path d="M9 1h2v16h5L10 27 4 17h5V1z"></path></svg></span></h1>
+          <p class="lede">We hand back 1-to-1 flour, almond flour, and coconut flour.</p>
+        </section>
+
+        <div class="work">
+          <form class="entry" id="swap-form" autocomplete="off">
+            <label class="field-label" for="amount">Regular flour</label>
+            <div class="entry-row">
+              <input
+                id="amount"
+                name="amount"
+                type="text"
+                inputmode="decimal"
+                spellcheck="false"
+                placeholder="1 1/4"
+                aria-describedby="amount-help"
+              />
+              <div class="unit" role="radiogroup" aria-label="Unit">
+                <button type="button" role="radio" aria-checked="true" data-unit="cups" id="unit-cups">
+                  Cups
+                </button>
+                <button type="button" role="radio" aria-checked="false" data-unit="grams" id="unit-grams">
+                  Grams
+                </button>
+              </div>
+            </div>
+            <p class="help" id="amount-help">
+              Cups can be 1 1/4 or 2/3. Grams use 120 g per cup of all-purpose flour.
+            </p>
+            <div class="presets" role="group" aria-label="Common amounts">
+              <button type="button" data-preset="1">1 cup</button>
+              <button type="button" data-preset="1.25">1 1/4 cups</button>
+              <button type="button" data-preset="2">2 cups</button>
+            </div>
+            <div class="precision">
+              <p class="field-label" id="precision-label">Accuracy</p>
+              <div class="mode" role="radiogroup" aria-labelledby="precision-label">
+                <button type="button" role="radio" aria-checked="true" data-precision="simple" id="precision-simple">
+                  Rounded
+                </button>
+                <button type="button" role="radio" aria-checked="false" data-precision="exact" id="precision-exact">
+                  More precise
+                </button>
+              </div>
+              <p class="help" id="precision-help">
+                Rounded to the nearest tablespoon. This will not be exact. Select More precise for the exact gram weight.
+              </p>
+            </div>
+          </form>
+
+          <section class="result" aria-live="polite" aria-atomic="true">
+            <div class="result-head">
+              <div>
+                <p class="eyebrow">Gluten-free flour</p>
+                <h2>Put this in the bowl</h2>
+              </div>
+              <div class="brand" role="radiogroup" aria-label="1-to-1 brand, for the gram weight">
+                <button type="button" role="radio" aria-checked="true" data-brand="bobs">Bob's Red Mill</button>
+                <button type="button" role="radio" aria-checked="false" data-brand="kingArthur">King Arthur</button>
+              </div>
+            </div>
+            <p class="brand-note" id="brand-note">
+              The cup amount stays the same either way. Grams for the 1-to-1 follow the bag you buy.
+            </p>
+            <div id="result-body"></div>
+          </section>
+        </div>
+
+        <section class="notes" aria-label="How to use the blend">
+          <div>
+            <h3>Spoon and level</h3>
+            <p>Spoon the flour into the cup and level it. Scooping packs it down. Coconut flour packs hardest.</p>
+          </div>
+          <div>
+            <h3>The 1-to-1</h3>
+            <p>Buy Bob's Red Mill 1-to-1 Baking Flour or King Arthur Measure for Measure. Use one of them for that line.</p>
+          </div>
+          <div>
+            <h3>Almond flour</h3>
+            <p>Almond flour is a tree nut. Skip this blend when the bake needs to be nut-free.</p>
+          </div>
+        </section>
+
+        <footer class="colophon">
+          <p id="rounding-note">
+            Rounded to the nearest tablespoon. This will not be exact. Select More precise for the exact gram weight.
+          </p>
+          <p>
+            Weights, spooned and leveled: all-purpose flour 120 g per cup and Measure for Measure 120 g per cup
+            (King Arthur). Bob's Red Mill 1-to-1 is 148 g per cup. Almond flour 96 g per cup and coconut flour
+            128 g per cup (King Arthur). Bob's almond flour is closer to 112 g per cup, so weigh from the bag you have.
+          </p>
+        </footer>
+      </article>
+    </div>
+    <noscript>
+      <p class="noscript">EngineerChef's Flour Blend needs JavaScript to do the math.</p>
+    </noscript>
+    <script src="convert.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
