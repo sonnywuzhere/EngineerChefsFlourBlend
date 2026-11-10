@@ -207,12 +207,6 @@ button:focus-visible {
   color: var(--butter);
 }
 
-.help {
-  margin: 10px 0 0;
-  color: var(--cocoa);
-  font-size: 0.95rem;
-}
-
 .presets {
   display: flex;
   flex-wrap: wrap;
