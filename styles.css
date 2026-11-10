@@ -228,37 +228,9 @@ button:focus-visible {
   font-size: 0.92rem;
 }
 
-.presets button:hover, .copy button:hover, .brand button:hover, .unit button:hover, .mode button:hover {
+.presets button:hover, .copy button:hover, .brand button:hover, .unit button:hover {
   transform: translate(-1px, -1px);
   box-shadow: 3px 3px 0 var(--rule);
-}
-
-.precision { margin-top: 22px; }
-
-.mode {
-  display: flex;
-  box-shadow: var(--shadow-sm);
-}
-
-.mode button {
-  flex: 1;
-  min-height: 44px;
-  padding: 8px 10px;
-  border: 1px solid var(--rule);
-  background: white;
-  cursor: pointer;
-  font-weight: 800;
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  line-height: 1.15;
-  text-transform: uppercase;
-}
-
-.mode button + button { border-left: 0; }
-
-.mode button[aria-checked="true"] {
-  background: var(--cocoa);
-  color: var(--butter);
 }
 
 .result-head {

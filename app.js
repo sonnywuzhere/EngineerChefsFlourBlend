@@ -5,15 +5,11 @@
   var unitButtons = Array.prototype.slice.call(document.querySelectorAll("[data-unit]"));
   var brandButtons = Array.prototype.slice.call(document.querySelectorAll("[data-brand]"));
   var presetButtons = Array.prototype.slice.call(document.querySelectorAll("[data-preset]"));
-  var precisionButtons = Array.prototype.slice.call(document.querySelectorAll("[data-precision]"));
-  var precisionHelp = document.getElementById("precision-help");
   var roundingNote = document.getElementById("rounding-note");
   var brandNote = document.getElementById("brand-note");
 
   var unit = "cups";
   var brand = "bobs";
-  var precision = "simple";
-  var precisionChosen = false;
   var canonicalCups = null;
   var fieldIsGenerated = false;
 
@@ -139,7 +135,7 @@
       return;
     }
 
-    var result = FlourSwap.convert(reading.cups, brand, precision, unit);
+    var result = FlourSwap.convert(reading.cups, brand, unit);
     var rows = ["oneToOne", "almond", "coconut"]
       .map(function (key) {
         var flour = result.flours[key];
@@ -189,12 +185,8 @@
       "EngineerChef's Flour Blend",
       "Regular flour: " + input,
       unit === "grams"
-        ? precision === "exact"
-          ? "Exact grams. The blend weighs the same as the regular flour."
-          : "Rounded to the nearest gram. The blend weighs the same as the regular flour."
-        : precision === "exact"
-          ? "Exact spoons. The blend matches the regular flour by volume."
-          : "Rounded to tablespoons. Together these add up to the regular flour.",
+        ? "Rounded to the nearest gram. The blend weighs the same as the regular flour."
+        : "Measured in tablespoons. Together these add up to the regular flour.",
       "",
     ];
     ["oneToOne", "almond", "coconut"].forEach(function (key) {
@@ -252,42 +244,14 @@
     });
   }
 
-  function applyPrecision(next, chosen) {
-    var precise = next === "exact" || next === "precise" || next === "teaspoons";
-    precision = precise ? "exact" : "simple";
-    if (chosen) precisionChosen = true;
-    selected(precisionButtons, "data-precision", precision);
-    updateMeasureCopy();
-  }
-
   function updateMeasureCopy() {
-    var byWeight = unit === "grams";
-    if (byWeight && precision === "exact") {
-      precisionHelp.textContent = "Exact grams. These add up to the regular flour.";
-      roundingNote.textContent = "The three flours add up to the regular flour by weight.";
-      brandNote.textContent =
-        "Bob's and King Arthur split the grams differently, because the 1-to-1 bags do not weigh the same.";
-      return;
-    }
-    if (byWeight) {
-      precisionHelp.textContent = "Rounded to the nearest gram. These grams add up to the regular flour.";
+    if (unit === "grams") {
       roundingNote.textContent = "Rounded to the nearest gram. These grams add up to the regular flour.";
       brandNote.textContent =
         "Bob's and King Arthur split the grams differently. The total still matches the regular flour.";
       return;
     }
-    if (precision === "exact") {
-      precisionHelp.textContent =
-        "Spoons down to a small teaspoon. These cups add up to the regular flour.";
-      roundingNote.textContent =
-        "The three flours add up to the regular flour by volume, down to a small teaspoon.";
-      brandNote.textContent = "The cup amount is the same for Bob's and King Arthur.";
-      return;
-    }
-    precisionHelp.textContent =
-      "Measured in tablespoons. Together these add up to the regular flour. Select More precise for a closer ratio.";
-    roundingNote.textContent =
-      "Measured in tablespoons. Together these add up to the regular flour. Select More precise for a closer ratio.";
+    roundingNote.textContent = "Measured in tablespoons. Together these add up to the regular flour.";
     brandNote.textContent = "The cup amount is the same for Bob's and King Arthur.";
   }
 
@@ -304,8 +268,7 @@
       var shown = unit === "grams" ? reading.cups * FlourSwap.REGULAR_CUP_GRAMS : reading.cups;
       amountInput.value = FlourSwap.formatInputAmount(shown, unit);
     }
-    if (!precisionChosen) applyPrecision(unit === "grams" ? "exact" : "simple", false);
-    else updateMeasureCopy();
+    updateMeasureCopy();
     updatePresetLabels();
     render();
   }
@@ -343,13 +306,6 @@
     });
   });
 
-  precisionButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      applyPrecision(button.getAttribute("data-precision"), true);
-      render();
-    });
-  });
-
   presetButtons.forEach(function (button) {
     button.addEventListener("click", function () {
       var cups = Number(button.getAttribute("data-preset"));
@@ -370,17 +326,6 @@
     amountInput.value = params.get("demo");
   }
   if (params.get("unit") === "grams") setUnit("grams");
-  var measure = params.get("precision") || params.get("measure");
-  if (
-    measure === "exact" ||
-    measure === "precise" ||
-    measure === "teaspoons" ||
-    measure === "simple" ||
-    measure === "rounded" ||
-    measure === "tablespoons"
-  ) {
-    applyPrecision(measure, true);
-  }
   if (params.get("brand") === "kingArthur") {
     brand = "kingArthur";
     selected(brandButtons, "data-brand", brand);
