@@ -194,7 +194,7 @@
           : "Rounded to the nearest gram. The blend weighs the same as the regular flour."
         : precision === "exact"
           ? "Exact spoons. The blend matches the regular flour by volume."
-          : "Rounded to the nearest tablespoon. These measurements will not be exact.",
+          : "Rounded to tablespoons. Together these add up to the regular flour.",
       "",
     ];
     ["oneToOne", "almond", "coconut"].forEach(function (key) {
@@ -285,9 +285,9 @@
       return;
     }
     precisionHelp.textContent =
-      "Rounded to the nearest tablespoon. This will not be exact. Select More precise for a smaller spoon.";
+      "Measured in tablespoons. Together these add up to the regular flour. Select More precise for a closer ratio.";
     roundingNote.textContent =
-      "Rounded to the nearest tablespoon. This will not be exact. Select More precise for a smaller spoon.";
+      "Measured in tablespoons. Together these add up to the regular flour. Select More precise for a closer ratio.";
     brandNote.textContent = "The cup amount is the same for Bob's and King Arthur.";
   }
 

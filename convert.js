@@ -29,8 +29,9 @@
   // Volume shares of the written blend: 2/5, 2/5, and 1/5.
   var SHARE = { oneToOne: 2, almond: 2, coconut: 1 };
 
-  // Simple spoon measures round to the nearest tablespoon (16 per cup).
-  // Exact spoon measures round to the nearest teaspoon (48 per cup).
+  // Simple spoon measures use whole tablespoons (16 per cup). The three flours
+  // add up to the regular flour, so a line may move by a tablespoon.
+  // Exact spoon measures keep the written ratio down to a small teaspoon.
   // Eighth-cup and quarter-cup steps drop coconut flour on small recipes.
   var TBSP_PER_CUP = 16;
   var TSP_PER_CUP = 48;
@@ -334,7 +335,14 @@
       };
     }
     var spoons = Math.max(0, Math.round(cups * TBSP_PER_CUP));
-    var grams = (spoons > 0 ? spoons / TBSP_PER_CUP : cups) * perCup;
+    return scoopFromTablespoons(spoons, perCup, cups);
+  }
+
+  // Whole tablespoons that add up to the regular flour. A line can move by
+  // one tablespoon so the total still matches.
+  function scoopFromTablespoons(spoons, perCup, exactCups) {
+    var gramCups = spoons > 0 ? spoons / TBSP_PER_CUP : exactCups;
+    var grams = gramCups * perCup;
     var shownGrams = grams > 0 && Math.round(grams) <= 0 ? 0 : Math.round(grams);
     return {
       spoons: spoons,
@@ -358,10 +366,20 @@
     var totalGrams = 0;
     var shownWeight = [];
     var targetWeight = 0;
+    var shownTbsp = [];
     if (byWeight) {
       var target = regularCups * REGULAR_CUP_GRAMS;
       targetWeight = Math.max(0, Math.round(exact ? target * 1000 : target));
       shownWeight = weightShares(regularCups, chosen, keys, targetWeight);
+    } else if (!exact) {
+      var targetTbsp = Math.max(0, Math.round(regularCups * TBSP_PER_CUP));
+      var shareTotal = SHARE.oneToOne + SHARE.almond + SHARE.coconut;
+      shownTbsp = splitThousandths(
+        keys.map(function (key) {
+          return (SHARE[key] * targetTbsp) / shareTotal;
+        }),
+        targetTbsp
+      );
     }
     keys.forEach(function (key, index) {
       var exactCups = RATIO[key] * scale;
@@ -379,8 +397,13 @@
           : formatGrams(shownWeight[index]);
         scoop = scoopFromCups(exactCups, perCup, exact);
         totalGrams += grams;
+      } else if (exact) {
+        scoop = scoopFromCups(exactCups, perCup, true);
+        grams = scoop.grams;
+        gramsLabel = scoop.gramsLabel;
+        totalGrams += scoop.shownGrams;
       } else {
-        scoop = scoopFromCups(exactCups, perCup, exact);
+        scoop = scoopFromTablespoons(shownTbsp[index], perCup, exactCups);
         grams = scoop.grams;
         gramsLabel = scoop.gramsLabel;
         totalGrams += scoop.shownGrams;

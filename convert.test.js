@@ -42,18 +42,33 @@ test("150 grams of regular flour matches 1 1/4 cups", function () {
   assert.equal(result.flours.coconut.volume.plain, "1/4 cup");
 });
 
-test("1 cup rounds to the nearest tablespoon and keeps the blend", function () {
+test("1 cup rounds to tablespoons and still totals 1 cup", function () {
   const result = swap.convert(1, "bobs");
-  assert.equal(result.flours.oneToOne.volume.plain, "1/4 cup + 2 tablespoons");
+  assert.equal(result.flours.oneToOne.volume.plain, "1/4 cup + 3 tablespoons");
   assert.equal(result.flours.almond.volume.plain, "1/4 cup + 2 tablespoons");
   assert.equal(result.flours.coconut.volume.plain, "3 tablespoons");
-  assert.equal(result.flours.oneToOne.gramsLabel, "56 g");
+  assert.equal(result.flours.oneToOne.gramsLabel, "65 g");
   assert.equal(result.flours.almond.gramsLabel, "36 g");
   assert.equal(result.flours.coconut.gramsLabel, "24 g");
-  assert.equal(result.total.volume.plain, "3/4 cup + 3 tablespoons");
-  assert.equal(result.total.gramsLabel, "116 g");
-  assert.equal(result.total.tablespoons, 15);
+  assert.equal(result.total.volume.plain, "1 cup");
+  assert.equal(result.total.gramsLabel, "125 g");
+  assert.equal(result.total.tablespoons, 16);
   assert.equal(result.flours.oneToOne.volume.plain.includes("teaspoon"), false);
+});
+
+test("rounded tablespoons add up to the regular flour", function () {
+  [0.25, 0.5, 2 / 3, 1, 1.25, 2, 3.5].forEach(function (cups) {
+    ["bobs", "kingArthur"].forEach(function (brand) {
+      const result = swap.convert(cups, brand, "simple", "cups");
+      const target = Math.round(cups * 16);
+      const parts =
+        result.flours.oneToOne.tablespoons +
+        result.flours.almond.tablespoons +
+        result.flours.coconut.tablespoons;
+      assert.equal(parts, target);
+      assert.equal(result.total.tablespoons, target);
+    });
+  });
 });
 
 test("2 cups rounds without teaspoons", function () {
